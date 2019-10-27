@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head onload="startLine()">
+<link rel="stylesheet" type="text/css" href="css/style.css">
+<script src="js/jquery-3.4.1.min.js"></script>
+<script>
+   //line start and finishpoint
+   var start = 150;
+   var finish = 1200;
+   //index counter for events used by most of script
+   var index = 1;
+   //updateLine updates line AND table, including switching rows
+       function updateLine(startIng) 
+    {
+        // check if zooming event was included in the function call    
+        if (startIng === undefined){
+            startIng = "No";
+        }
+        // Check if rows need switching for time order
+        var table, lines, switching, a, x, y, shouldSwitch;
+        table = document.getElementById("myTable");
+        switching = true;
+        // Make a loop that will continue until no switching done:
+        while (switching) 
+        {
+            // start with no switching:
+            switching = false;
+            lines = table.rows;
+            // Loop through all table rows (except the first, re headers)
+            for (a = 1; a < (table.rows.length - 1); a++) 
+            {
+                /*start by saying there should be no switching */
+                shouldSwitch = false;
+                //pick consecutive rows
+                x = table.rows[a].cells[0].firstChild.value;
+                x = new Date(x);
+                y = table.rows[a+1].cells[0].firstChild.value;
+                y = new Date(y);
+                //check if the two rows should switch place and set shouldSwitch
+                if (x > y) 
+                {
+                    shouldSwitch = true;
+                    break;
+                }
+            }
+            if (shouldSwitch) 
+            {
+                /*If a switch has been marked, make the switch and mark it as been done:*/ 
+                table.rows[a].parentNode.insertBefore(table.rows[a + 1], table.rows[a]);
+                switching = true;
+            }
+        }
+    //Clear canvas then draw line and end blobs again
+        var c = document.getElementById("myCanvas");
+        var ctx = c.getContext("2d");
+        ctx.clearRect(0, 0, 1250, 300);
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, 1250, 300);
+        //Admission blob
+        ctx.beginPath();
+        ctx.arc(start, 150, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = "#000000"
+        ctx.fill();
+        //Death blob
+        ctx.beginPath();
+        ctx.arc(finish, 150, 10, 0, 2 * Math.PI);
+        ctx.fill();
+        //Line itself
+        ctx.beginPath();
+        ctx.moveTo(start, 150);
+        ctx.lineTo(finish, 150);
+        ctx.stroke();
+        //Work out stay length and day width or set as 24hr if zoomed
+        var adm = document.getElementById("admissiondate").value;
+            adm = new Date(adm);
+            var dth = document.getElementById("deathdate").value;
+            dth = new Date(dth);
+            var staylength = (dth-adm); 
+            var admHour = adm.getHours();
+            var admMin = adm.getMinutes();
+        if (startIng == "No"){
+         
+            var admTime = (admMin * 60000) + (admHour * 3600000);
+            var days = staylength / 86400000;
+            var oneday = ((finish - start) / days);
+        }
+        else{
+            var adm = new Date(startIng.value);
+            var staylength = 86400000;
+            }
+        //draw event lines, blobs and text
+        for(var counter = 1; counter < index; counter++)
+        {
+            //Check if event is highlighted as a concern and set below line
+            var poorChk = table.rows[counter].cells[2].firstChild.checked;
+            if (poorChk == true) {
+                var typeheight = 150 + (130 - (counter * 15));
+                var wordHeight = typeheight + 25;
+                var col = "#FF0000";
+            } else {
+                var typeheight = 20 + (counter * 15);
+                var wordHeight = typeheight - 15;
+                var col = "#00008B";
+            }
+            //Workout event distance on line 
+            var table = document.getElementById("myTable");
+            var thisrow = table.rows[counter];
+            var eventdate = thisrow.cells[0].firstChild.value;
+            var eventdate = new Date(eventdate);
+            var eventpoint = eventdate - adm;
+            var dist = ((eventpoint / staylength) * (finish - start)) + start;
+            
+        //Draw the blob
+            var ctxy = c.getContext("2d");
+            ctxy.beginPath();
+            ctxy.arc(dist, 150, 5, 0, 2 * Math.PI);
+            ctxy.fillStyle = col;
+            ctxy.fill(); 
+        //Draw marker lines, below line if flagged
+            ctxy.strokeStyle = col
+            ctxy.beginPath();
+            ctxy.moveTo(dist, 150); 
+            ctxy.lineTo(dist, typeheight);
+            ctxy.stroke();
+        //add event type text at top of line
+            var eventname =  thisrow.cells[1].firstChild.value;
+            ctxy.textAlign = "start"; 
+            ctxy.fillStyle = col;
+            ctxy.font = "15px Georgia";
+            ctxy.fillText(eventname, dist, wordHeight); 
+
+        }
+        //Day markers - make them hour markers if zoomed
+            //Weekend markers first
+            if (startIng == "No")
+            {
+            var admTremain = (((86400000 - admTime) / 86400000) * oneday);
+            var weekDay = adm.getDay();
+            var pointb = 0;
+            var pointa = 0;
+            var i = 0;
+                while (pointb < finish)
+                {
+                    ctxy.strokeStyle = "#000000";
+                    ctxy.beginPath();
+                    switch(weekDay)
+                    {
+                    case 0:
+                        if (i == 0)
+                        {
+                        pointa = start;
+                        pointb = start + admTremain;
+                        }
+                        else {
+                        pointa = start + admTremain - (2 * oneday) + (i * 7 * oneday);
+                        pointb = start + admTremain + (i * 7 * oneday);
+                        } 
+                        break;
+                    case 6:
+                        if (i == 0)  
+                        {
+                        pointa = start;
+                        pointb = start + admTremain + oneday;
+                        }
+                        else {
+                        pointa = start  + admTremain - oneday + (i * 7 * oneday);
+                        pointb = start + admTremain + oneday + (i * 7 * oneday);
+                        } 
+                        break;
+                    default:
+                        pointa = (start + admTremain + (oneday * (5 - weekDay)) + (i * 7 * oneday));
+                        pointb = pointa + 2 * oneday;
+                        break;
+                    }
+                if(pointb > finish){
+                    pointb = finish;
+                }
+                if(pointa <finish){
+                ctxy.moveTo(pointa, 160);
+                ctxy.lineTo(pointb, 160);
+                ctxy.stroke();
+                }
+                    i++;
+                }
+            }
+            else 
+            {
+                var oneday = (finish - start)/24;
+                alert("oneday ="+oneday);
+                var admTremain = (60 - admMin)/60 * oneday;
+                alert("Tremain ="+admTremain);
+            }
+            var x = 0;
+            var point = 1;
+            while ((point + oneday) < finish)
+            {  
+                point = (start + admTremain + (oneday * x));
+                ctxy.strokeStyle = "#000000";
+                ctxy.beginPath();
+                ctxy.moveTo(point, 150);
+                ctxy.lineTo(point, 160);
+                ctxy.stroke();
+                x++;
+            }    
+             // update age and initials
+            var age = document.getElementById("age").value;
+            age = age.concat(" yr");
+            var initials = document.getElementById("initials").value;
+            var PC = document.getElementById("PC").value;
+            var PMH1 = document.getElementById("PMH1").value;
+            var PMH2 = document.getElementById("PMH2").value;
+            var PMH3 = document.getElementById("PMH3").value;
+            var PMH4 = document.getElementById("PMH4").value;
+            var PMH5 = document.getElementById("PMH5").value;
+            var c = document.getElementById("myCanvas");
+            var ctxy = c.getContext("2d");
+            ctxy.textAlign = "start"; 
+            ctxy.font = "18px Georgia";
+            ctxy.fillStyle = "#000000";
+            ctxy.fillText(initials, 20, 30); 
+            ctxy.fillText(age, 20, 50);
+            ctxy.font = "12px Georgia";
+            ctxy.fillText(PC, 20, 80);
+            ctxy.fillText(PMH1, 20, 110);
+            ctxy.fillText(PMH2, 20, 130);
+            ctxy.fillText(PMH3, 20, 150);
+            ctxy.fillText(PMH4, 20, 170);
+            ctxy.fillText(PMH5, 20, 190);
+            // lines between PC and PMH
+            ctxy.strokeStyle = "#000000";
+                ctxy.beginPath();
+                ctxy.moveTo(20, 60);
+                ctxy.lineTo(110, 60);
+                ctxy.stroke();
+                ctxy.beginPath();
+                ctxy.moveTo(20, 90);
+                ctxy.lineTo(110, 90);
+                ctxy.stroke();
+                ctxy.beginPath();
+                ctxy.moveTo(110, 20);
+                ctxy.lineTo(110, 190);
+                ctxy.stroke();
+        }
+        //ever extending table
+        var options = ["Referral","FY Review","CT Review","ST/SAS Review","Consultant Review","Scan","ICU admission","Periarrest","Arrest"];
+        var opLen = options.length;
+        var list = "<select>"
+                    for(var o = 0; o < opLen; o++){
+                    var nextOp = options[o]
+                    list = list.concat("<option value='", options[o],"'>", options[o],"</option>");
+                    }
+                    list = list.concat("</select>");
+            function insertRow()
+            {
+                var table=document.getElementById("myTable");
+                var row=table.insertRow(table.rows.length);
+                var cell1=row.insertCell(0);
+                var t1=document.createElement("input");
+                    t1.class = "noborder";
+                    t1.onchange = function(){updateLine()};
+                    t1.id = "edate"+index;
+                    t1.type="datetime-local";
+                    cell1.appendChild(t1);
+                var cell2=row.insertCell(1);
+                var t2=document.createElement("select");
+                    t2.class = "noborder";
+                    t2.onchange = function(){updateLine()};
+                    t2.id = "etype"+index;
+                    cell2.appendChild(t2);    
+                var cell3=row.insertCell(2);
+                var t3=document.createElement("input");
+                    t3.setAttribute("type", "checkbox");
+                    t3.id = "poorChk"+index;
+                    t3.onchange = function(){updateLine()};
+                    cell3.appendChild(t3);
+                    var target_cell = document.getElementById("etype"+index);
+                    target_cell.innerHTML = list;
+                    cell4 = row.insertCell(3);
+                var t4 = document.createElement("input");
+                    t4.id = "edetail"+index;
+                    t4.class = "underborder";
+                    t4.size = "100";
+                    cell4.appendChild(t4);
+                cell5 = row.insertCell(4);
+                var t5 = document.createElement("button");
+                    t5.id = "btnZoom"+index;
+                    var edate = document.getElementById("edate"+index);
+                    t5.onclick = function() {updateLine(edate)};
+                    t5.innerText = "Zoom";
+                    cell5.appendChild(t5); 
+                index++;
+            }
+        function takePicture(){
+            var canvas = document.getElementById("myCanvas");
+            var img = canvas.toDataURL("exportme/png");
+            var popup = window.open();
+            popup.document.write('<img src="'+img+'"/>');
+            popup.focus(); //required for IE
+            popup.print();
+        }
+        function exportTable(){
+            var htmltable= document.getElementById('myTable');
+            var html = htmltable.outerHTML;
+            window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+        }
+</script>
+</head>
+<body onload = "insertRow()">
+<canvas id="myCanvas" width="1250" height="300" style="border:1px solid #d3d3d3;"></canvas> 
+
+<div>
+    Admission Date & Time
+    <input type="datetime-local" id="admissiondate" onfocusout="updateLine()">
+    Date & Time of Death
+    <input type="datetime-local" id="deathdate" onfocusout="updateLine()">
+    Age:
+    <input type="text" id="age" size="5" maxlength="4" onchange="updateLine()">
+    Initials: 
+    <input type="text" id="initials" size="5" maxlength="4" onchange="updateLine()">
+    <br>
+    PC:
+    <input type="text" id="PC" size="20" onchange="updateLine()">
+    PMH 1:
+    <input type="text" id="PMH1" size="25" onchange="updateLine()">
+    2:
+    <input type="text" id="PMH2" size="25" onchange="updateLine()">
+    3:
+    <input type="text" id="PMH3" size="25" onchange="updateLine()">
+    4:
+    <input type="text" id="PMH4" size="25" onchange="updateLine()">
+    5:
+    <input type="text" id="PMH5" size="25" onchange="updateLine()">
+
+    </div>
+<hr>
+
+<table id="myTable">
+    <th>Date & Time</th>
+    <th>Type</th>
+    <th>Problem?</th>
+    <th>Detail</th>
+</table> 
+<button id= "btnAdd" onclick="insertRow()">Add Event</button>
+<button id= "btnFull" onclick="updateLine()">Full Timeline</button>
+<br><br>
+<button id= "btnExport" onclick="takePicture()" width = "35">Exp Timeline</button>
+<button id= "btnExport" onclick="exportTable()" width = "35">Exp Table</button>
+<p id = "test"></p>
+</body>

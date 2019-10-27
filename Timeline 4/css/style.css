@@ -1,0 +1,37 @@
+
+table.myTable {
+    border: none;
+    table-layout: fixed;
+} 
+td,th{
+    text-align: left;
+}
+span {
+    width: 100%;
+    display: block;
+    min-height: 100%;
+}
+p{
+    font-size: 70%;
+}
+h3{
+    font-size: 100%;
+}
+[id*="edate"],[id*="etime"],[id*="etype"] {
+    border-style: none;
+}
+.underborder {
+    border-top-style: none;
+    border-left-style: none;
+    border-right-style: none;
+}
+[id*="edetail"],[id*="admission"],[id*="death"],[id*="age"],[id*="initials"],[id*="PC"],[id*="PMH"] {
+    border-top-style: none;
+    border-left-style: none;
+    border-right-style: none;
+}
+[id*="poorChk"]{
+        width: 20px; 
+        height: 20px; 
+    } 
+

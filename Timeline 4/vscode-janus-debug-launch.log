@@ -1,0 +1,4 @@
+INFO |00000.092|JanusDebugSession: launchRequest
+DEBUG|00000.093|JanusDebugSession: my workspace: c:\Users\jmand\Dropbox\Code\Timeline 4
+ERROR|00000.102|JanusDebugSession: launchRequest failed: no script specified by user
+INFO |00000.107|JanusDebugSession: disconnectRequest
