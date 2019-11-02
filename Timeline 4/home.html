@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head onload="startLine()">
+<meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
 <link rel="stylesheet" type="text/css" href="css/style.css">
-<script src="js/jquery-3.4.1.min.js"></script>
 <script>
    //line start and finishpoint
    var start = 150;
@@ -19,29 +19,31 @@
         // Check if rows need switching for time order
         var table, lines, switching, a, x, y, shouldSwitch;
         table = document.getElementById("myTable");
-        switching = true;
-        // Make a loop that will continue until no switching done:
-        while (switching) 
+        if(table.rows.length > 2) 
         {
-            // start with no switching:
-            switching = false;
-            lines = table.rows;
-            // Loop through all table rows (except the first, re headers)
-            for (a = 1; a < (table.rows.length - 1); a++) 
+            switching = true;
+            // Make a loop that will continue until no switching done:
+            while (switching) 
             {
-                /*start by saying there should be no switching */
-                shouldSwitch = false;
-                //pick consecutive rows
-                x = table.rows[a].cells[0].firstChild.value;
-                x = new Date(x);
-                y = table.rows[a+1].cells[0].firstChild.value;
-                y = new Date(y);
-                //check if the two rows should switch place and set shouldSwitch
-                if (x > y) 
+                // start with no switching:
+                switching = false;
+                lines = table.rows;
+                // Loop through all table rows (except the first, re headers)
+                for (a = 1; a < (table.rows.length - 1); a++) 
                 {
+                    /*start by saying there should be no switching */
+                    shouldSwitch = false;
+                    //pick consecutive rows
+                    x = table.rows[a].cells[0].firstChild.value;
+                    x = new Date(x);
+                    y = table.rows[a+1].cells[0].firstChild.value;
+                    y = new Date(y);
+                    //check if the two rows should switch place and set shouldSwitch
+                    if (x > y) 
+                    {
                     shouldSwitch = true;
                     break;
-                }
+                    }
             }
             if (shouldSwitch) 
             {
@@ -50,26 +52,60 @@
                 switching = true;
             }
         }
+        }
+        else{
+            switching = false;
+        }
     //Clear canvas then draw line and end blobs again
         var c = document.getElementById("myCanvas");
-        var ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, 1250, 300);
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, 1250, 300);
+        var ctxy = c.getContext("2d");
+        ctxy.clearRect(0, 0, 1250, 300);
+        ctxy.fillStyle = "#FFFFFF";
+        ctxy.fillRect(0, 0, 1250, 300);
+        //add Rectangle
+        function roundRect(ctxy, x, y, width, height, radius, fill, stroke) {
+            if (typeof stroke == "undefined" ) {
+            stroke = true;
+            }
+                if (typeof radius === "undefined") {
+                radius = 5;
+            }
+            ctxy.beginPath();
+            ctxy.moveTo(x + radius, y);
+            ctxy.lineTo(x + width - radius, y);
+            ctxy.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctxy.lineTo(x + width, y + height - radius);
+            ctxy.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctxy.lineTo(x + radius, y + height);
+            ctxy.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctxy.lineTo(x, y + radius);
+            ctxy.quadraticCurveTo(x, y, x + radius, y);
+            ctxy.closePath();
+            if (stroke) {
+                ctxy.stroke();
+            }
+            if (fill) {
+                ctxy.fill();
+            }        
+        }
+        //Call rectangle function
+        roundRect(ctxy, 5, 5, 1245, 290);
+        ctxy.strokeStyle = "rgb(255, 0, 0)";
+        ctxy.fillStyle = "rgba(255, 255, 0, .5)";
         //Admission blob
-        ctx.beginPath();
-        ctx.arc(start, 150, 10, 0, 2 * Math.PI);
-        ctx.fillStyle = "#000000"
-        ctx.fill();
+        ctxy.beginPath();
+        ctxy.arc(start, 150, 10, 0, 2 * Math.PI);
+        ctxy.fillStyle = "#000000"
+        ctxy.fill();
         //Death blob
-        ctx.beginPath();
-        ctx.arc(finish, 150, 10, 0, 2 * Math.PI);
-        ctx.fill();
+        ctxy.beginPath();
+        ctxy.arc(finish, 150, 10, 0, 2 * Math.PI);
+        ctxy.fill();
         //Line itself
-        ctx.beginPath();
-        ctx.moveTo(start, 150);
-        ctx.lineTo(finish, 150);
-        ctx.stroke();
+        ctxy.beginPath();
+        ctxy.moveTo(start, 150);
+        ctxy.lineTo(finish, 150);
+        ctxy.stroke();
         //Work out stay length and day width or set as 24hr if zoomed
         var adm = document.getElementById("admissiondate").value;
             adm = new Date(adm);
@@ -95,11 +131,11 @@
             var poorChk = table.rows[counter].cells[2].firstChild.checked;
             if (poorChk == true) {
                 var typeheight = 150 + (130 - (counter * 15));
-                var wordHeight = typeheight + 25;
+                var wordHeight = typeheight + 10;
                 var col = "#FF0000";
             } else {
                 var typeheight = 20 + (counter * 15);
-                var wordHeight = typeheight - 15;
+                var wordHeight = typeheight - 10;
                 var col = "#00008B";
             }
             //Workout event distance on line 
@@ -186,9 +222,7 @@
             else 
             {
                 var oneday = (finish - start)/24;
-                alert("oneday ="+oneday);
                 var admTremain = (60 - admMin)/60 * oneday;
-                alert("Tremain ="+admTremain);
             }
             var x = 0;
             var point = 1;
@@ -292,22 +326,45 @@
             }
         function takePicture(){
             var canvas = document.getElementById("myCanvas");
-            var img = canvas.toDataURL("exportme/png");
+            var img = canvas.toDataURL(initials+"Timeline/png");
             var popup = window.open();
             popup.document.write('<img src="'+img+'"/>');
             popup.focus(); //required for IE
             popup.print();
         }
-        function exportTable(){
-            var htmltable= document.getElementById('myTable');
-            var html = htmltable.outerHTML;
-            window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
-        }
+        function exportTable()
+        {
+            var table = document.getElementById("myTable");
+            var rowCount = table.rows.length;
+            var data = new Array(rowCount);
+            var thisRow = table.rows;
+            for(c = 1;c < (rowCount);c++){
+                data[c] = new Array(3);
+                    data[c][0] = thisRow[c].cells[0].firstChild.value;
+                    data[c][1] = thisRow[c].cells[1].firstChild.value;
+                    data[c][2] = thisRow[c].cells[3].firstChild.value;
+                }
+            //parse with commas
+            let csvContent = "data:text/csv;charset=utf-8,";
+            data.forEach(function(rowArray) {
+            let row = rowArray.join(",");
+            csvContent += row + "\r\n";
+            });
+            //save as csv file
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "tableData.csv");
+            document.body.appendChild(link); // ??Required for FF
+            link.click(); // to download the file
+            }
+            
+        
 </script>
 </head>
 <body onload = "insertRow()">
-<canvas id="myCanvas" width="1250" height="300" style="border:1px solid #d3d3d3;"></canvas> 
 
+    <canvas id="myCanvas" width="1250" height="300" style="border:1px solid #d3d3d3;"></canvas> 
 <div>
     Admission Date & Time
     <input type="datetime-local" id="admissiondate" onfocusout="updateLine()">
@@ -333,17 +390,18 @@
 
     </div>
 <hr>
-
+<div class="container">
 <table id="myTable">
     <th>Date & Time</th>
     <th>Type</th>
     <th>Problem?</th>
     <th>Detail</th>
 </table> 
-<button id= "btnAdd" onclick="insertRow()">Add Event</button>
-<button id= "btnFull" onclick="updateLine()">Full Timeline</button>
-<br><br>
-<button id= "btnExport" onclick="takePicture()" width = "35">Exp Timeline</button>
-<button id= "btnExport" onclick="exportTable()" width = "35">Exp Table</button>
-<p id = "test"></p>
+</div>
+<br>
+<button id= "btnAdd" class = "bbuttons" onclick="insertRow()">Add Event</button>
+<button id= "btnFull" class = "bbuttons" onclick="updateLine()">Full Timeline</button>
+<button id= "btnExportLine" class = "bbuttons" onclick="takePicture()" >Exp Timeline</button>
+<button id= "btnExportTbl" class = "bbuttons" onclick="exportTable()">Exp Table</button>
+
 </body>
