@@ -6,6 +6,9 @@ table.myTable {
 td,th{
     text-align: left;
 }
+tr{
+    height: 10px;
+}
 span {
     width: 100%;
     display: block;
@@ -25,7 +28,14 @@ h3{
     border-left-style: none;
     border-right-style: none;
 }
-[id*="edetail"],[id*="admission"],[id*="death"],[id*="age"],[id*="initials"],[id*="PC"],[id*="PMH"] {
+.keepright {
+    float: right;
+}
+.keepleft {
+    float: left;
+}
+[id*="edetail"],[id*="admission"],[id*="death"],[id*="age"],[id*="initials"],[id*="PC"],[id*="PMH"],
+[id*="1a"],[id*="1b"],[id*="1c"],[id*="2nd"] {
     border-top-style: none;
     border-left-style: none;
     border-right-style: none;
@@ -34,4 +44,17 @@ h3{
         width: 20px; 
         height: 20px; 
     } 
-
+.bbuttons{
+border-radius: 50%;
+width: 10%;
+border: 1px solid green;
+}
+.container {
+    display: flex;
+    position: relative;
+    overflow-y: auto;
+    height: 160px;
+    width: 100%;
+    backface-visibility: hidden;
+    will-change: overflow;
+}
