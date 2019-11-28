@@ -1,210 +1,315 @@
 <!DOCTYPE html>
 <html>
-<head onload="startLine()">
-<link rel="stylesheet" type="text/css" href="css/style.css">
-<script src="js/jquery-3.4.1.min.js"></script>
-<script>
-   //line start and finishpoint
-   var start = 150;
-   var finish = 1200;
-   //index counter for events used by most of script
-   var index = 1;
-   //updateLine updates line AND table, including switching rows
-       function updateLine(startIng) 
-    {
-        // check if zooming event was included in the function call    
-        if (startIng === undefined){
-            startIng = "No";
-        }
-        // Check if rows need switching for time order
-        var table, lines, switching, a, x, y, shouldSwitch;
-        table = document.getElementById("myTable");
-        switching = true;
-        // Make a loop that will continue until no switching done:
-        while (switching) 
-        {
-            // start with no switching:
-            switching = false;
-            lines = table.rows;
-            // Loop through all table rows (except the first, re headers)
-            for (a = 1; a < (table.rows.length - 1); a++) 
-            {
-                /*start by saying there should be no switching */
-                shouldSwitch = false;
-                //pick consecutive rows
-                x = table.rows[a].cells[0].firstChild.value;
-                x = new Date(x);
-                y = table.rows[a+1].cells[0].firstChild.value;
-                y = new Date(y);
-                //check if the two rows should switch place and set shouldSwitch
-                if (x > y) 
-                {
-                    shouldSwitch = true;
-                    break;
+
+<head>
+    <meta http-equiv="content-type" content="text/plain; charset=UTF-8" />
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script>
+    /* Get the documentElement (<html>) to display the page in fullscreen */
+var elem = document.documentElement;
+
+/* View in fullscreen */
+function togCheck(){
+var l = document.getElementById("screenToggle").value;
+if(l == "on"){
+    openFullscreen()
+}
+else if(l == "off"){
+    closeFullscreen()
+}
+}
+function openFullscreen() {
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+}
+
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE/Edge */
+    document.msExitFullscreen();
+  }
+}
+
+        // start = coord of start of line
+        // finish = coord of end of line
+        // begin = line start date
+        // end = line end date
+        // adm = admission date/time
+        // dth = death date/time
+        // tRemain = remainder of day from line start date
+        // bAdj and eAdj are the number of days adjustment to the begin and end points of the line
+
+        //line start and finishpoint
+        const start = 150;
+        const finish = 1100;
+        const lineheight = 200
+        var beginIng;
+        var endIng;
+        var admGlobal;
+        var bAdj = 0;
+        var eAdj = 0;
+        var zoomD = 0;
+        var rowHeight = "10";
+        //index counter for events used by most of script
+        var index = 1;
+        //updateLine updates line AND table, including switching rows
+        function updateLine(bAdjust,eAdjust,zoomD) {
+            if(bAdjust === "A"){
+                bAdj = 0;
+            }
+            else if(eAdjust === "B"){
+                eAdj = 0;
+            }
+            else{
+            bAdj = bAdj + bAdjust;
+            eAdj = eAdj + eAdjust;
+            }
+            // check if zooming event was included in the function call    
+            // Check if rows need switching for time order
+            var table, lines, switching, a, x, y, shouldSwitch;
+            table = document.getElementById("myTable");
+            if (table.rows.length > 2) {
+                switching = true;
+                // Make a loop that will continue until no switching done:
+                while (switching) {
+                    // start with no switching:
+                    switching = false;
+                    lines = table.rows;
+                    // Loop through all table rows (except the first, re headers)
+                    for (a = 1; a < (table.rows.length - 1); a++) {
+                        /*start by saying there should be no switching */
+                        shouldSwitch = false;
+                        //pick consecutive rows
+                        x = table.rows[a].cells[0].firstChild.value;
+                        x = new Date(x);
+                        y = table.rows[a + 1].cells[0].firstChild.value;
+                        y = new Date(y);
+                        //check if the two rows should switch place and set shouldSwitch
+                        if (x > y) {
+                            shouldSwitch = true;
+                            break;
+                        }
+                    }
+                    if (shouldSwitch) {
+                        /*If a switch has been marked, make the switch and mark it as been done:*/
+                        table.rows[a].parentNode.insertBefore(table.rows[a + 1], table.rows[a]);
+                        switching = true;
+                    }
                 }
             }
-            if (shouldSwitch) 
-            {
-                /*If a switch has been marked, make the switch and mark it as been done:*/ 
-                table.rows[a].parentNode.insertBefore(table.rows[a + 1], table.rows[a]);
-                switching = true;
+            else {
+                switching = false;
             }
-        }
-    //Clear canvas then draw line and end blobs again
-        var c = document.getElementById("myCanvas");
-        var ctx = c.getContext("2d");
-        ctx.clearRect(0, 0, 1250, 300);
-        ctx.fillStyle = "#FFFFFF";
-        ctx.fillRect(0, 0, 1250, 300);
-        //Admission blob
-        ctx.beginPath();
-        ctx.arc(start, 150, 10, 0, 2 * Math.PI);
-        ctx.fillStyle = "#000000"
-        ctx.fill();
-        //Death blob
-        ctx.beginPath();
-        ctx.arc(finish, 150, 10, 0, 2 * Math.PI);
-        ctx.fill();
-        //Line itself
-        ctx.beginPath();
-        ctx.moveTo(start, 150);
-        ctx.lineTo(finish, 150);
-        ctx.stroke();
-        //Work out stay length and day width or set as 24hr if zoomed
-        var adm = document.getElementById("admissiondate").value;
-            adm = new Date(adm);
+            //Clear canvas then draw line and end blobs again
+            var c = document.getElementById("myCanvas");
+            var ctxy = c.getContext("2d");
+            ctxy.clearRect(0, 0, 1250, 400);
+            ctxy.fillStyle = "#FFFFFF";
+            ctxy.fillRect(0, 0, 1250, 400);
+            //add Rectangle
+            function roundRect(ctxy, x, y, width, height, radius, fill, stroke) {
+                if (typeof stroke == "undefined") {
+                    stroke = true;
+                }
+                if (typeof radius === "undefined") {
+                    radius = 5;
+                }
+                ctxy.beginPath();
+                ctxy.moveTo(x + radius, y);
+                ctxy.lineTo(x + width - radius, y);
+                ctxy.quadraticCurveTo(x + width, y, x + width, y + radius);
+                ctxy.lineTo(x + width, y + height - radius);
+                ctxy.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+                ctxy.lineTo(x + radius, y + height);
+                ctxy.quadraticCurveTo(x, y + height, x, y + height - radius);
+                ctxy.lineTo(x, y + radius);
+                ctxy.quadraticCurveTo(x, y, x + radius, y);
+                ctxy.closePath();
+                if (stroke) {
+                    ctxy.stroke();
+                }
+                if (fill) {
+                    ctxy.fill();
+                }
+            }
+            //Call rectangle function
+            roundRect(ctxy, 5, 5, 1235, 390);
+            ctxy.strokeStyle = "#000000";
+            //Admission blob
+            ctxy.beginPath();
+            ctxy.arc(start, lineheight, 10, 0, 2 * Math.PI);
+            ctxy.fillStyle = "#000000";
+            ctxy.fill();
+            //Death blob
+            ctxy.beginPath();
+            ctxy.arc(finish, lineheight, 10, 0, 2 * Math.PI);
+            ctxy.fill();
+            //Line itself
+            ctxy.beginPath();
+            ctxy.moveTo(start, lineheight);
+            ctxy.lineTo(finish, lineheight);
+            ctxy.fillStyle = "#000000";
+            ctxy.stroke();
+
+            //Work out stay length and day width or set as 24hr if zoomed
+            var adm = document.getElementById("admissiondate").value;
             var dth = document.getElementById("deathdate").value;
+            if(dth !== ""){
+            adm = new Date(adm);
             dth = new Date(dth);
-            var staylength = (dth-adm); 
+            var staylength = (dth - adm);
             var admHour = adm.getHours();
             var admMin = adm.getMinutes();
-        if (startIng == "No"){
-         
             var admTime = (admMin * 60000) + (admHour * 3600000);
-            var days = staylength / 86400000;
+            if(zoomD === 0){
+                var endIng = dth.setDate(dth.getDate() + eAdj);
+                endIng = new Date(endIng);
+                var beginIng = adm.setDate(adm.getDate() + bAdj);
+                beginIng = new Date(beginIng);
+            }
+            else{
+                var beginIng = new Date(zoomD.value);
+                var endIng = new Date(beginIng);
+                endIng = endIng.setDate(endIng.getDate() + 1);
+            }
+            var period = endIng - beginIng;
+            var beginMin = beginIng.getMinutes();
+            var beginHour = beginIng.getHours();
+            var beginTime = (beginMin * 60000) + (beginHour * 3600000);
+            var days = period / 86400000;
             var oneday = ((finish - start) / days);
-        }
-        else{
-            var adm = new Date(startIng.value);
-            var staylength = 86400000;
+            //draw event lines, blobs and text
+            for (var counter = 1; counter < index; counter++) {
+                //Check if event is highlighted as a concern and set below line
+                var poorChk = table.rows[counter].cells[2].firstChild.checked;
+                if (poorChk == true) {
+                    var typeheight = lineheight + (130 - (counter * 15));
+                    var wordHeight = typeheight + 15;
+                    var wcol = "#FF0000";
+                } else {
+                    var typeheight = 20 + (counter * 10);
+                    var wordHeight = typeheight - 5;
+                    var wcol = "#00008B";
+                }
+                //Workout event distance on line 
+                var table = document.getElementById("myTable");
+                var thisrow = table.rows[counter];
+                var eventdate = thisrow.cells[0].firstChild.value;
+                var eventdate = new Date(eventdate);
+                var eventpoint = eventdate - beginIng;
+                var dist = ((eventpoint / period) * (finish - start)) + start;
+                
+                //Draw the blob
+                if(dist >= start && dist < finish) {
+                var ctxy = c.getContext("2d");
+                ctxy.beginPath();
+                ctxy.arc(dist, lineheight, 5, 0, 2 * Math.PI);
+                ctxy.fillStyle = wcol;
+                ctxy.fill();
+                //Draw marker lines, below line if flagged
+                ctxy.strokeStyle = wcol
+                ctxy.beginPath();
+                ctxy.moveTo(dist, lineheight);
+                ctxy.lineTo(dist, typeheight);
+                ctxy.stroke();
+                //add event type text at top of line
+                var eventname = thisrow.cells[1].firstChild;
+                var eventname = eventname.firstChild.value;
+                var eventDetail = thisrow.cells[3].firstChild;
+                var eventDetail = eventDetail.value;
+                if(poorChk == true){
+                    eventname = eventname + ": " + eventDetail;
+                }
+                ctxy.textAlign = "start";
+                ctxy.fillStyle = wcol;
+                ctxy.font = "10px Georgia";
+                ctxy.fillText(eventname, dist, wordHeight);
+                }
+                else {
+                    break;
+                    }
             }
-        //draw event lines, blobs and text
-        for(var counter = 1; counter < index; counter++)
-        {
-            //Check if event is highlighted as a concern and set below line
-            var poorChk = table.rows[counter].cells[2].firstChild.checked;
-            if (poorChk == true) {
-                var typeheight = 150 + (130 - (counter * 15));
-                var wordHeight = typeheight + 25;
-                var col = "#FF0000";
-            } else {
-                var typeheight = 20 + (counter * 15);
-                var wordHeight = typeheight - 15;
-                var col = "#00008B";
-            }
-            //Workout event distance on line 
-            var table = document.getElementById("myTable");
-            var thisrow = table.rows[counter];
-            var eventdate = thisrow.cells[0].firstChild.value;
-            var eventdate = new Date(eventdate);
-            var eventpoint = eventdate - adm;
-            var dist = ((eventpoint / staylength) * (finish - start)) + start;
-            
-        //Draw the blob
-            var ctxy = c.getContext("2d");
-            ctxy.beginPath();
-            ctxy.arc(dist, 150, 5, 0, 2 * Math.PI);
-            ctxy.fillStyle = col;
-            ctxy.fill(); 
-        //Draw marker lines, below line if flagged
-            ctxy.strokeStyle = col
-            ctxy.beginPath();
-            ctxy.moveTo(dist, 150); 
-            ctxy.lineTo(dist, typeheight);
-            ctxy.stroke();
-        //add event type text at top of line
-            var eventname =  thisrow.cells[1].firstChild.value;
-            ctxy.textAlign = "start"; 
-            ctxy.fillStyle = col;
-            ctxy.font = "15px Georgia";
-            ctxy.fillText(eventname, dist, wordHeight); 
-
-        }
-        //Day markers - make them hour markers if zoomed
+            //Day markers - make them hour markers if zoomed
             //Weekend markers first
-            if (startIng == "No")
-            {
-            var admTremain = (((86400000 - admTime) / 86400000) * oneday);
-            var weekDay = adm.getDay();
-            var pointb = 0;
-            var pointa = 0;
-            var i = 0;
-                while (pointb < finish)
-                {
+                var tRemain = (((86400000 - beginTime) / 86400000) * oneday);
+                var weekDay = beginIng.getDay();
+                var pointb = 0;
+                var pointa = 0;
+                var i = 0;
+                while (pointb < finish) {
                     ctxy.strokeStyle = "#000000";
                     ctxy.beginPath();
-                    switch(weekDay)
-                    {
-                    case 0:
-                        if (i == 0)
-                        {
-                        pointa = start;
-                        pointb = start + admTremain;
-                        }
-                        else {
-                        pointa = start + admTremain - (2 * oneday) + (i * 7 * oneday);
-                        pointb = start + admTremain + (i * 7 * oneday);
-                        } 
-                        break;
-                    case 6:
-                        if (i == 0)  
-                        {
-                        pointa = start;
-                        pointb = start + admTremain + oneday;
-                        }
-                        else {
-                        pointa = start  + admTremain - oneday + (i * 7 * oneday);
-                        pointb = start + admTremain + oneday + (i * 7 * oneday);
-                        } 
-                        break;
-                    default:
-                        pointa = (start + admTremain + (oneday * (5 - weekDay)) + (i * 7 * oneday));
-                        pointb = pointa + 2 * oneday;
-                        break;
+                    switch (weekDay) {
+                        case 0:
+                            if (i == 0) {
+                                pointa = start;
+                                pointb = start + tRemain;
+                            }
+                            else {
+                                pointa = start + tRemain - (2 * oneday) + (i * 7 * oneday);
+                                pointb = start + tRemain + (i * 7 * oneday);
+                            }
+                            break;
+                        case 6:
+                            if (i == 0) {
+                                pointa = start;
+                                pointb = start + tRemain + oneday;
+                            }
+                            else {
+                                pointa = start + tRemain - oneday + (i * 7 * oneday);
+                                pointb = start + tRemain + oneday + (i * 7 * oneday);
+                            }
+                            break;
+                        default:
+                            pointa = (start + tRemain + (oneday * (5 - weekDay)) + (i * 7 * oneday));
+                            pointb = pointa + 2 * oneday;
+                            break;
                     }
-                if(pointb > finish){
-                    pointb = finish;
-                }
-                if(pointa <finish){
-                ctxy.moveTo(pointa, 160);
-                ctxy.lineTo(pointb, 160);
-                ctxy.stroke();
-                }
+                    if (pointb > finish) {
+                        pointb = finish;
+                    }
+                    if (pointa < finish) {
+                        ctxy.moveTo(pointa, lineheight + 10);
+                        ctxy.lineTo(pointb, lineheight + 10);
+                        ctxy.stroke();
+                    }
                     i++;
                 }
-            }
-            else 
-            {
-                var oneday = (finish - start)/24;
-                alert("oneday ="+oneday);
-                var admTremain = (60 - admMin)/60 * oneday;
-                alert("Tremain ="+admTremain);
-            }
+                //hour markers, beginTdiff is distance of minutes to the hr after start
+                var beginTdiff = ((60 - beginMin) / 60) * (oneday);
+                var xco = start + beginTdiff / 24;
+                while (xco < finish) {
+                    ctxy.moveTo(xco, lineheight);
+                    ctxy.lineTo(xco, lineheight + 3);
+                    ctxy.stroke();
+                    xco = xco + (oneday / 24);
+                }
             var x = 0;
             var point = 1;
-            while ((point + oneday) < finish)
-            {  
-                point = (start + admTremain + (oneday * x));
+            while ((point + oneday) < finish) {
+                point = (start + tRemain + (oneday * x));
                 ctxy.strokeStyle = "#000000";
                 ctxy.beginPath();
-                ctxy.moveTo(point, 150);
-                ctxy.lineTo(point, 160);
+                ctxy.moveTo(point, lineheight);
+                ctxy.lineTo(point, lineheight + 10);
                 ctxy.stroke();
                 x++;
-            }    
-             // update age and initials
+            }
+            // update age and initials
             var age = document.getElementById("age").value;
             age = age.concat(" yr");
+            var sex = document.getElementById("sex").value;
+            sex = sex.concat("/");
             var initials = document.getElementById("initials").value;
             var PC = document.getElementById("PC").value;
             var PMH1 = document.getElementById("PMH1").value;
@@ -214,136 +319,247 @@
             var PMH5 = document.getElementById("PMH5").value;
             var c = document.getElementById("myCanvas");
             var ctxy = c.getContext("2d");
-            ctxy.textAlign = "start"; 
+            ctxy.textAlign = "start";
             ctxy.font = "18px Georgia";
             ctxy.fillStyle = "#000000";
-            ctxy.fillText(initials, 20, 30); 
-            ctxy.fillText(age, 20, 50);
+            ctxy.fillText(initials, 20, 30);
+            ctxy.fillText(sex, 20, 50)
+            ctxy.fillText(age, 50, 50);
             ctxy.font = "12px Georgia";
             ctxy.fillText(PC, 20, 80);
-            ctxy.fillText(PMH1, 20, 110);
-            ctxy.fillText(PMH2, 20, 130);
-            ctxy.fillText(PMH3, 20, 150);
-            ctxy.fillText(PMH4, 20, 170);
-            ctxy.fillText(PMH5, 20, 190);
+            ctxy.fillText(PMH1, 20, 130);
+            ctxy.fillText(PMH2, 20, 150);
+            ctxy.fillText(PMH3, 20, 170);
+            ctxy.fillText(PMH4, 20, 190);
+            ctxy.fillText(PMH5, 20, 210);
             // lines between PC and PMH
             ctxy.strokeStyle = "#000000";
-                ctxy.beginPath();
-                ctxy.moveTo(20, 60);
-                ctxy.lineTo(110, 60);
-                ctxy.stroke();
-                ctxy.beginPath();
-                ctxy.moveTo(20, 90);
-                ctxy.lineTo(110, 90);
-                ctxy.stroke();
-                ctxy.beginPath();
-                ctxy.moveTo(110, 20);
-                ctxy.lineTo(110, 190);
-                ctxy.stroke();
+            ctxy.beginPath();
+            ctxy.moveTo(20, 60);
+            ctxy.lineTo(110, 60);
+            ctxy.stroke();
+            ctxy.beginPath();
+            ctxy.moveTo(20, 90);
+            ctxy.lineTo(110, 90);
+            ctxy.stroke();
+            ctxy.beginPath();
+            ctxy.moveTo(110, 20);
+            ctxy.lineTo(110, 190);
+            ctxy.stroke();
+            // COD area
+            
+        }
+        // closing } for the if that checks if adm and dth are null
         }
         //ever extending table
-        var options = ["Referral","FY Review","CT Review","ST/SAS Review","Consultant Review","Scan","ICU admission","Periarrest","Arrest"];
+        var options = ["Referral", "FY Review", "CT Review", "ST/SAS Review", "Consultant Review", 
+        "Scan", "ICU admission", "Periarrest", "Arrest"];
         var opLen = options.length;
-        var list = "<select>"
-                    for(var o = 0; o < opLen; o++){
-                    var nextOp = options[o]
-                    list = list.concat("<option value='", options[o],"'>", options[o],"</option>");
-                    }
-                    list = list.concat("</select>");
-            function insertRow()
-            {
-                var table=document.getElementById("myTable");
-                var row=table.insertRow(table.rows.length);
-                var cell1=row.insertCell(0);
-                var t1=document.createElement("input");
-                    t1.class = "noborder";
-                    t1.onchange = function(){updateLine()};
-                    t1.id = "edate"+index;
-                    t1.type="datetime-local";
-                    cell1.appendChild(t1);
-                var cell2=row.insertCell(1);
-                var t2=document.createElement("select");
-                    t2.class = "noborder";
-                    t2.onchange = function(){updateLine()};
-                    t2.id = "etype"+index;
-                    cell2.appendChild(t2);    
-                var cell3=row.insertCell(2);
-                var t3=document.createElement("input");
-                    t3.setAttribute("type", "checkbox");
-                    t3.id = "poorChk"+index;
-                    t3.onchange = function(){updateLine()};
-                    cell3.appendChild(t3);
-                    var target_cell = document.getElementById("etype"+index);
-                    target_cell.innerHTML = list;
-                    cell4 = row.insertCell(3);
-                var t4 = document.createElement("input");
-                    t4.id = "edetail"+index;
-                    t4.class = "underborder";
-                    t4.size = "100";
-                    cell4.appendChild(t4);
-                cell5 = row.insertCell(4);
-                var t5 = document.createElement("button");
-                    t5.id = "btnZoom"+index;
-                    var edate = document.getElementById("edate"+index);
-                    t5.onclick = function() {updateLine(edate)};
-                    t5.innerText = "Zoom";
-                    cell5.appendChild(t5); 
-                index++;
-            }
-        function takePicture(){
+        var list = '<input list="detailList" size = "30" class = "underborder"><datalist id="detailList">';
+        for (var o = 0; o < opLen; o++) {
+            // list = list.concat("<option value='", options[o], "'>", options[o], "</option>");
+            list = list.concat("<option value='", options[o], "'>");
+        }
+        list = list.concat("</datalist>");
+        function insertRow() {
+            var table = document.getElementById("myTable");
+            var row = table.insertRow(table.rows.length);
+            var cell1 = row.insertCell(0);
+            var t1 = document.createElement("input");
+            t1.class = "noborder";
+            t1.onblur = function () { updateLine(0,0,0) };
+            t1.id = "edate" + index;
+            t1.type = "datetime-local";
+            cell1.appendChild(t1);
+            var cell2 = row.insertCell(1);
+            var t2 = document.createElement("p");
+            t2.class = "underborder";
+            t2.onchange = function () { updateLine(0,0,0) };
+            t2.id = "etype" + index;
+            cell2.appendChild(t2);
+            var cell3 = row.insertCell(2);
+            var t3 = document.createElement("input");
+            t3.setAttribute("type", "checkbox");
+            t3.id = "poorChk" + index;
+            t3.onchange = function () { updateLine(0,0,0) };
+            cell3.appendChild(t3);
+            cell4 = row.insertCell(3);
+            var t4 = document.createElement("input");
+            t4.id = "edetail" + index;
+            t4.class = "underborder";
+            t4.size = "100";
+            t4.onblur = function () { updateLine(0,0,0) };
+            cell4.appendChild(t4);
+            //Zoom button
+            cell5 = row.insertCell(4);
+            var t5 = document.createElement("button");
+            t5.id = "btnZoom" + index;
+            t5.className = "btn";
+            t5.innerHTML = "<i class='fa fa-search-plus'></i>";
+            var edate = document.getElementById("edate" + index);
+            t5.onclick = function () { updateLine(0,0,edate) };
+            cell5.appendChild(t5);
+            //Remove button
+            cell6 = row.insertCell(5);
+            var t6 = document.createElement("button");
+            t6.id = "btnRemove" + index;
+            t6.className = "btn";
+            t6.innerHTML = "<i class='fa fa-trash'></i>";
+            t6.onclick = function () { removeRow(t6.id) };
+            cell6.appendChild(t6); 
+
+            // populate detail list
+            target_cell = cell2.firstChild;
+            target_cell.innerHTML = list;
+            index++;
+        }
+        function takePicture() {
             var canvas = document.getElementById("myCanvas");
-            var img = canvas.toDataURL("exportme/png");
+            var img = canvas.toDataURL(initials + "Timeline/png");
             var popup = window.open();
-            popup.document.write('<img src="'+img+'"/>');
+            popup.document.write('<img src="' + img + '"/>');
             popup.focus(); //required for IE
             popup.print();
         }
-        function exportTable(){
-            var htmltable= document.getElementById('myTable');
-            var html = htmltable.outerHTML;
-            window.open('data:application/vnd.ms-excel,' + encodeURIComponent(html));
+        function exportTable() {
+            var table = document.getElementById("myTable");
+            var rowCount = table.rows.length;
+            var adm = document.getElementById("admissiondate").value;
+            adm = new Date(adm);
+            admd = adm.toDateString();
+            admt = adm.toLocaleTimeString();
+            var dth = document.getElementById("deathdate").value;
+            dth = new Date(dth);
+            dthd = dth.toDateString();
+            dtht = dth.toLocaleTimeString();
+            var data = new Array(rowCount);
+            var thisRow = table.rows;
+            for (i = 0; i < rowCount + 2; i++) {
+                data[i] = new Array(5);
+            }
+            //add column headings and admission line
+            data[0][0] = "Event Date";
+            data[0][1] = "Time"
+            data[0][2] = "Type";
+            data[0][3] = "Concern?";
+            data[0][4] = "Detail";
+            data[1][0] = admd;
+            data[1][1] = admt;
+            data[1][2] = "Hosp Admission";
+            data[1][3] = "";
+            data[1][4] = ""
+            //add the table values
+            for (c = 1; c < (rowCount); c++) {
+                var eventDate = thisRow[c].cells[0].firstChild.value;
+                eventDate = new Date(eventDate);
+                data[c + 1][0] = eventDate.toDateString();
+                data[c + 1][1] = eventDate.toLocaleTimeString();
+                data[c + 1][2] = thisRow[c].cells[1].firstChild.firstChild.value;
+                data[c + 1][3] = thisRow[c].cells[2].firstChild.checked;
+                data[c + 1][4] = thisRow[c].cells[3].firstChild.value;
+            }
+            //add death row
+            data[rowCount + 1][0] = dthd;
+            data[rowCount + 1][1] = dtht;
+            data[rowCount + 1][2] = "Death";
+            data[rowCount + 1][3] = "";
+            data[rowCount + 1][4] = "";
+
+            //parse with commas
+            let csvContent = "data:text/csv;charset=utf-8,";
+            data.forEach(function (rowArray) {
+                let row = rowArray.join(",");
+                csvContent += row + "\r\n";
+            });
+            //save as csv file
+            var encodedUri = encodeURI(csvContent);
+            var link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "Events.csv");
+            document.body.appendChild(link); // ??Required for FF
+            link.click(); // to download the file
+        }  
+        function removeRow(rowNum){
+            alert(rowNum);
+            var q = rowNum.slice(9,10);
+            alert(q);
+            q = parseInt(q);
+            alert(q);
+            index = index - 1;
+            document.getElementById("myTable").deleteRow(rowNum-1);
+            updateLine(0,0,0);
         }
-</script>
+        
+    </script>
 </head>
-<body onload = "insertRow()">
-<canvas id="myCanvas" width="1250" height="300" style="border:1px solid #d3d3d3;"></canvas> 
 
-<div>
-    Admission Date & Time
-    <input type="datetime-local" id="admissiondate" onfocusout="updateLine()">
-    Date & Time of Death
-    <input type="datetime-local" id="deathdate" onfocusout="updateLine()">
-    Age:
-    <input type="text" id="age" size="5" maxlength="4" onchange="updateLine()">
-    Initials: 
-    <input type="text" id="initials" size="5" maxlength="4" onchange="updateLine()">
-    <br>
-    PC:
-    <input type="text" id="PC" size="20" onchange="updateLine()">
-    PMH 1:
-    <input type="text" id="PMH1" size="25" onchange="updateLine()">
-    2:
-    <input type="text" id="PMH2" size="25" onchange="updateLine()">
-    3:
-    <input type="text" id="PMH3" size="25" onchange="updateLine()">
-    4:
-    <input type="text" id="PMH4" size="25" onchange="updateLine()">
-    5:
-    <input type="text" id="PMH5" size="25" onchange="updateLine()">
+<body onload="insertRow()">
+    <!--full screen toggle-->  
 
+    <label class="switch">
+                <input type="checkbox" id="screenToggle" onchange="togCheck()">
+                <span class="slider round"></span>
+              </label>
+
+    <!--Main canvas-->
+    <canvas id="myCanvas" width="1250" height="400" style="border:1px solid #d3d3d3;"></canvas>
+    <div>
+            
+        <button id="btnBeginEarlier" class="keepleft" onclick="updateLine(-1,0,0)"><i class='fa fa-arrow-left'></i></button>
+        <button id="reZero" class="keepleft" onclick="updateLine('A',0,0)"><i class='fa fa-dot-circle-o'></i></button>
+        <button id="btnBeginLater" class="keepleft" onclick="updateLine(1,0,0)"><i class='fa fa-arrow-right'></i></button>
+        &nbsp Admission:
+        <input type="datetime-local" id="admissiondate" onblur="updateLine(0,0,0)">
+        Death:
+        <input type="datetime-local" id="deathdate" onblur="updateLine(0,0,0)">
+        Sex:
+        <input type="text" id="sex" size="1" maxlength="1" onchange="updateLine(0,0,0)">
+        Age:
+        <input type="text" id="age" size="5" maxlength="4" onchange="updateLine(0,0,0)">
+        Initials:
+        <input type="text" id="initials" size="5" maxlength="4" onchange="updateLine(0,0,0)">
+        <button id="btnEndLater" class="keepright" onclick="updateLine(0,1,0)"><i class='fa fa-arrow-right'></i></button>
+        <button id="reZero" class = "keepright" onclick="updateLine(0,'B',0)"><i class='fa fa-dot-circle-o'></i></button>
+        <button id="btnEndEarlier" class="keepright" onclick="updateLine(0,-1,0)"><i class='fa fa-arrow-left'></i></button>
+        
+       <!--
+        COD 1a:
+        <input type="text" id="1a" size="12" onchange="updateLine()">
+        1b:
+        <input type="text" id="1b" size="12" onchange="updateLine()">
+        1c:
+        <input type="text" id="1c" size="12" onchange="updateLine()">
+        2:
+        <input type="text" id="2nd" size="12" onchange="updateLine()">
+       -->
+        <br>
+        PC:
+        <input type="text" id="PC" size="20" onchange="updateLine(0,0,0)">
+        PMH 1:
+        <input type="text" id="PMH1" size="25" onchange="updateLine(0,0,0)">
+        2:
+        <input type="text" id="PMH2" size="25" onchange="updateLine(0,0,0)">
+        3:
+        <input type="text" id="PMH3" size="25" onchange="updateLine(0,0,0)">
+        4:
+        <input type="text" id="PMH4" size="25" onchange="updateLine(0,0,0)">
+        5:
+        <input type="text" id="PMH5" size="25" onchange="updateLine(0,0,0)">
     </div>
-<hr>
+    <hr>
+    <div class="container">
+        <table id="myTable">
+            <th>Date & Time</th>
+            <th>Type</th>
+            <th >Flag?</th>
+            <th>Detail</th>
+        </table>
+    </div>
+    <br>
+    <button id="btnAdd" class="btn" onclick="insertRow()"><i class="fa fa-plus"></i> Event</button>
+    <button id="btnFull" class="btn" onclick="updateLine(0,0,0)"><i class="fa fa-home"></i> Refresh</button>
+    <button id="btnExportLine" class="btn" onclick="takePicture()"><i class="fa fa-save"></i> Line</button>
+    <button id="btnExportTbl" class="btn" onclick="exportTable()"><i class="fa fa-save"></i> Events</button>
 
-<table id="myTable">
-    <th>Date & Time</th>
-    <th>Type</th>
-    <th>Problem?</th>
-    <th>Detail</th>
-</table> 
-<button id= "btnAdd" onclick="insertRow()">Add Event</button>
-<button id= "btnFull" onclick="updateLine()">Full Timeline</button>
-<br><br>
-<button id= "btnExport" onclick="takePicture()" width = "35">Exp Timeline</button>
-<button id= "btnExport" onclick="exportTable()" width = "35">Exp Table</button>
-<p id = "test"></p>
 </body>
+</html>
