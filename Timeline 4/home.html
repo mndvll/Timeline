@@ -11,8 +11,12 @@ var elem = document.documentElement;
 //constants
 const start = 150;
 const finish = 1100;
-const lineheight = 200
-
+const lineheight = 300;
+const canvasW = 1240;
+const canvasH = 600;
+const tlWidth = 1230;
+const tlHeight = 600;
+const eventFont = "14";
 /* View in fullscreen */
 function togCheck(){
 var l = document.getElementById("screenToggle");
@@ -91,9 +95,9 @@ function closeFullscreen() {
             //Clear canvas then draw line and end blobs again
             var c = document.getElementById("myCanvas");
             var ctxy = c.getContext("2d");
-            ctxy.clearRect(0, 0, 1250, 400);
+            ctxy.clearRect(0, 0, canvasW, canvasH);
             ctxy.fillStyle = "#FFFFFF";
-            ctxy.fillRect(0, 0, 1250, 400);
+            ctxy.fillRect(0, 0, canvasW, canvasH);
             //add Rectangle
             function roundRect(ctxy, x, y, width, height, radius, fill, colour, stroke) {
                 if (typeof stroke == "undefined") {
@@ -122,7 +126,7 @@ function closeFullscreen() {
                 }
             }
             //Call rectangle function
-            roundRect(ctxy, 5, 5, 1235, 390, 5, true,"#F0FFFF");
+            roundRect(ctxy, 5, 5, tlWidth, tlHeight, 5, true,"#F0FFFF");
             ctxy.strokeStyle = "#000000";
             //Admission blob
             ctxy.beginPath();
@@ -169,17 +173,24 @@ function closeFullscreen() {
             var oneday = ((finish - start) / days);
             //draw event lines, blobs and text
             var table = document.getElementById("myTable");
+            index = table.rows.length;
+            var tickCount = 0;
+            //tick and unctickCount is to enable sequential distance from top or bottom for each event
+            var tickCount = 1;
+            var untickCount = 1
             for (var counter = 1; counter < index; counter++) {
                 //Check if event is highlighted as a concern and set below line
                 var poorChk = table.rows[counter].cells[3].firstChild.checked;
                 if (poorChk == true) {
-                    var typeheight = lineheight + (180 - (counter * 20));
+                    var typeheight = lineheight + (lineheight - (tickCount * 30));
                     var wordHeight = typeheight + 15;
                     var wcol = "#FF0000";
+                    tickCount = tickCount +1;
                 } else {
-                    var typeheight = 20 + (counter * 20);
+                    var typeheight = 20 + ((untickCount) * 30);
                     var wordHeight = typeheight - 5;
                     var wcol = "#00008B";
+                    untickCount = untickCount + 1;
                 }
                 //Workout event distance on line 
                
@@ -194,42 +205,44 @@ function closeFullscreen() {
                 
                 //Draw the marker lines, blob and name, check if within line first
                 if(dist >= start && dist < finish) {
-                
-                //Draw marker lines, below line if flagged
+                //Draw marker line, below line if flagged
                 ctxy.strokeStyle = wcol;
                 ctxy.beginPath();
                 ctxy.moveTo(dist, lineheight);
                 ctxy.lineTo(dist, typeheight);
                 ctxy.stroke();
-                ctxy.beginPath();
-                ctxy.moveTo(dist + duration, lineheight);
-                ctxy.lineTo(dist + duration, typeheight);
-                ctxy.stroke();
-                //rectangle 
-                if(dist + duration < finish){
-                roundRect(ctxy, dist, lineheight, duration, typeheight-lineheight, 0, true, "#B0E0E6", false);
-                }
-                //draw blob
-                var ctxy = c.getContext("2d");
+                // and blob
                 ctxy.beginPath();
                 ctxy.arc(dist, lineheight, 5, 0, 2 * Math.PI);
                 ctxy.fillStyle = wcol;
                 ctxy.fill();
+                //rectangle, cut it short if needed and omit second blob
+                if(dist + duration < finish){
+                roundRect(ctxy, dist+2, lineheight, duration-2, typeheight-lineheight, 0, true, "#B0E0E6", false);
                 ctxy.beginPath();
                 ctxy.arc(dist+duration, lineheight, 5, 0, 2 * Math.PI);
                 ctxy.fillStyle = wcol;
                 ctxy.fill();
+                ctxy.beginPath();
+                ctxy.moveTo(dist + duration, lineheight);
+                ctxy.lineTo(dist + duration, typeheight);
+                ctxy.stroke();
+                }
+                else{
+                roundRect(ctxy, dist+2, lineheight, finish-dist-2, typeheight-lineheight, 0, true, "#B0E0E6", false);
+                }
                 //add event type text at top/bottom of line
                 var eventname = thisrow.cells[2].firstChild;
                 var eventname = eventname.firstChild.value;
                 var eventDetail = thisrow.cells[4].firstChild;
                 var eventDetail = eventDetail.value;
-                if(poorChk == true){
-                    eventname = eventname + ": " + eventDetail;
+                if(eventDetail != ""){
+                    eventDetail = ": " + eventDetail;
                 }
+                eventname = eventname + eventDetail;
                 ctxy.textAlign = "start";
                 ctxy.fillStyle = wcol;
-                ctxy.font = "12px Georgia";
+                ctxy.font = eventFont + "px Georgia";
                 ctxy.fillText(eventname, dist, wordHeight);
                 }
                 else {
@@ -314,7 +327,7 @@ function closeFullscreen() {
                 ctxy.strokeStyle = "#A9A9A9";
                 ctxy.beginPath();
                 ctxy.moveTo(admDist, 20);
-                ctxy.lineTo(admDist, 380);
+                ctxy.lineTo(admDist, (canvasH-20));
                 ctxy.stroke();
                 ctxy.textAlign = "start";
                 ctxy.fillStyle = "#A9A9A9";
@@ -326,7 +339,7 @@ function closeFullscreen() {
                 ctxy.strokeStyle = "#A9A9A9";
                 ctxy.beginPath();
                 ctxy.moveTo(dthDist, 20);
-                ctxy.lineTo(dthDist, 380);
+                ctxy.lineTo(dthDist, (canvasH-20));
                 ctxy.stroke();
                 ctxy.textAlign = "start";
                 ctxy.fillStyle = "#A9A9A9";
@@ -447,9 +460,11 @@ function closeFullscreen() {
             t7.id = "btnRemove" + index;
             t7.className = "btn";
             t7.innerHTML = "<i class='fa fa-trash'></i>";
-            t7.onclick = function () { removeRow(t7.id) };
+            t7.onclick = function () {
+                var rowToGo = row.rowIndex;
+                document.getElementById("myTable").deleteRow(rowToGo);
+                updateLine(0,0,0)}
             cell7.appendChild(t7); 
-
             // populate detail list
             target_cell = cell3.firstChild;
             target_cell.innerHTML = list;
@@ -495,10 +510,10 @@ function closeFullscreen() {
         }
         function takePicture() {
             var canvas = document.getElementById("myCanvas");
+            var initials = document.getElementById("initials").value;
             var img = canvas.toDataURL(initials + "Timeline/png");
             var popup = window.open();
             popup.document.write('<img src="' + img + '"/>');
-            popup.focus(); //required for IE
             popup.print();
         }
         function exportTable() {
@@ -528,31 +543,46 @@ function closeFullscreen() {
             data[0][1] = sex;
             data[0][2] = age;
             data[1][0] = "Event Date";
-            data[1][1] = "Time";
-            data[1][2] = "Type";
-            data[1][3] = "Concern?";
-            data[1][4] = "Detail";
+            data[1][1] = "Start Time";
+            data[1][2] = "End Date"
+            data[1][3] = "End Time"
+            data[1][4] = "Type";
+            data[1][5] = "Concern?";
+            data[1][6] = "Detail";
             data[2][0] = admd;
             data[2][1] = admt;
-            data[2][2] = "Hosp Admission";
-            data[2][3] = "";
-            data[2][4] = "";
+            data[2][2] = admd;
+            data[2][3] = admt;
+            data[2][4] = "Hosp Admission";
+            data[2][5] = "";
+            data[2][6] = "";
             //add the table values
             for (c = 1; c < (rowCount); c++) {
                 var eventDate = thisRow[c].cells[0].firstChild.value;
                 eventDate = new Date(eventDate);
+                var eventEnd = thisRow[c].cells[1].firstChild.value;
+                eventEnd = new Date(eventEnd);
                 data[c + 2][0] = eventDate.toDateString();
                 data[c + 2][1] = eventDate.toLocaleTimeString();
-                data[c + 2][2] = thisRow[c].cells[2].firstChild.firstChild.value;
-                data[c + 2][3] = thisRow[c].cells[3].firstChild.checked;
-                data[c + 2][4] = thisRow[c].cells[4].firstChild.value;
+                data[c + 2][2] = eventEnd.toDateString();
+                data[c + 2][3] = eventEnd.toLocaleTimeString();
+                data[c + 2][4] = thisRow[c].cells[2].firstChild.firstChild.value;
+                data[c + 2][6] = thisRow[c].cells[4].firstChild.value;
+                if(thisRow[c].cells[3].firstChild.checked){
+                    data[c + 2][5] = "Yes";
+                }
+                else{
+                    data[c + 2][5] = "No";
+                }
             }
             //add death row
             data[rowCount + 2][0] = dthd;
             data[rowCount + 2][1] = dtht;
-            data[rowCount + 2][2] = "Death";
-            data[rowCount + 2][3] = "";
-            data[rowCount + 2][4] = "";
+            data[rowCount + 2][2] = dthd;
+            data[rowCount + 2][3] = dtht;
+            data[rowCount + 2][4] = "Death";
+            data[rowCount + 2][5] = "";
+            data[rowCount + 2][6] = "";
 
             //parse with commas
             let csvContent = "data:text/csv;charset=utf-8,";
@@ -568,12 +598,6 @@ function closeFullscreen() {
             document.body.appendChild(link); // ??Required for FF
             link.click(); // to download the file
         }  
-        function removeRow(rowNum){
-            var q = rowNum.slice(9,10);
-            index = index - 1;
-            document.getElementById("myTable").deleteRow(q);
-            updateLine(0,0,0);
-        }
         function copyTo(source){
             var y = parseInt(source);
             var table = document.getElementById("myTable");
@@ -582,6 +606,69 @@ function closeFullscreen() {
             d.focus;
             d.value = s;
         }
+        // import data from csv
+        function Upload() {        
+        var fileUpload = document.getElementById("fileUpload");
+                var reader = new FileReader();
+                reader.onload = function (e) {
+                    var table = document.getElementById("myTable");
+                    // target is the uploaded file
+                    var rows = e.target.result.split("\n");
+                    var cells = rows[2].split(",");
+                    document.getElementById("admissiondate").value = dateComb(cells[0],cells[1]);
+                    var last = (rows.length)-2;
+                    var cells = rows[last].split(",");
+                    document.getElementById("deathdate").value = dateComb(cells[0],cells[1]);
+                    //Remove first row prior to importing rows
+                    index = index-1;
+                    document.getElementById("myTable").deleteRow(1);
+                    updateLine(0,0,0);
+                    for(var i = 2; i < (rows.length); i++){
+                        var cells = rows[i].split(",");
+                        if(cells.length > 1) {
+                            insertRow();
+                            var table = document.getElementById("myTable");
+                            var thisRow = table.rows[i-2];
+                            //join the start date and time together then parse for adding to input field
+                            var startDateTime = dateComb(cells[0],cells[1]);
+                            document.getElementById("edate"+(i-1)).value = startDateTime;
+                            // same for end date/time
+                            var endDateTime = dateComb(cells[2],cells[3]);
+                            document.getElementById("edateEnd"+(i-1)).value = endDateTime;
+                            // now type field
+                            document.getElementById("etype"+(i-1)).firstChild.value = cells[4];
+                            document.getElementById("edetail"+(i-1)).value = cells[6];
+                            if(cells[5] == "Yes"){
+                            document.getElementById("poorChk"+(i-1)).checked = true;
+                            } else{
+                            document.getElementById("poorChk"+(i-1)).checked = false;
+                            }
+                            }
+                        }
+                        index = rows.length;
+                        updateLine(0,0,0);
+                    }
+                reader.readAsText(fileUpload.files[0]);
+    }
+    // date and time combiner for imported values (csv)
+    function dateComb(dateZ,timeZ){
+                        var startDate = new Date(dateZ);
+                        var startDate = startDate.getTime();
+                        var time = timeZ.split(":");
+                        seconds =(time[0]*3600+time[1]*60)*1000;
+                            var d = new Date(startDate + seconds);
+                            month = '' + (d.getMonth() + 1),
+                            day = '' + d.getDate(),
+                            year = d.getFullYear();
+                            hour = '' + d.getHours();
+                            minute = '' + d.getMinutes();
+                        if (month.length < 2){month = "0"+month};
+                        if (day.length < 2){day = "0"+day};
+                        if (hour.length < 2){hour = "0"+hour};
+                        if (minute.length < 2){minute = "0"+minute};
+                        var dateV = year + "-" + month + "-" + day + "T" + hour + ":" + minute;
+                        return dateV;
+                    }
     </script>
 </head>
 
@@ -593,9 +680,8 @@ function closeFullscreen() {
       </label>
 
     <!--Main canvas-->
-    <canvas id="myCanvas" width="1250" height="400" style="border:0px;"></canvas>
+    <canvas id="myCanvas" width="1250" height="650" style="border:0px;"></canvas>
     <div>
-            
         <button id="btnBeginEarlier" class="keepleft" onclick="updateLine(-1,0,0)"><i class='fa fa-arrow-left'></i></button>
         <button id="reZero" class="keepleft" onclick="updateLine('A',0,0)"><i class='fa fa-dot-circle-o'></i></button>
         <button id="btnBeginLater" class="keepleft" onclick="updateLine(1,0,0)"><i class='fa fa-arrow-right'></i></button>
@@ -652,6 +738,7 @@ function closeFullscreen() {
     <button id="btnFull" class="btn" onclick="updateLine(0,0,0)"><i class="fa fa-home"></i> Refresh</button>
     <button id="btnExportLine" class="btn" onclick="takePicture()"><i class="fa fa-save"></i> Line</button>
     <button id="btnExportTbl" class="btn" onclick="exportTable()"><i class="fa fa-save"></i> Events</button>
-
+    <input type="file" id="fileUpload" />
+    <input type="button" id="upload" value="Upload" onclick="Upload()" />
 </body>
 </html>
