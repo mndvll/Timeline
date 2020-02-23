@@ -10,13 +10,13 @@
 var elem = document.documentElement;
 //constants
 const start = 150;
-const finish = 1100;
+const finish = 900;
 const lineheight = 300;
 const canvasW = 1240;
 const canvasH = 600;
-const tlWidth = 1230;
+const tlWidth = 1200;
 const tlHeight = 600;
-const eventFont = "14";
+const eventFont = "16";
 /* View in fullscreen */
 function togCheck(){
 var l = document.getElementById("screenToggle");
@@ -49,7 +49,7 @@ function closeFullscreen() {
 
         // start = coord of start of line
         // finish = coord of end of line
-        // beginIng = line start date
+        // beginIng = line start date (?ms)
         // endIng = line end date
         // adm = admission date/time
         // admd = admission date as string
@@ -75,11 +75,15 @@ function closeFullscreen() {
         var duration = 1;
         var destination = "";
         var source = 0;
+        var bAdjust = 0;
+        var eAdjust = 0;
         //index counter for events used by most of script
         var index = 1;
         //updateLine updates line AND table, including switching rows
+        //bAdjust is beginning adjustment
         function updateLine(bAdjust,eAdjust,zoomD) {
             checkTable();
+
             if(bAdjust === "A"){
                 bAdj = 0;
             }
@@ -90,7 +94,6 @@ function closeFullscreen() {
             bAdj = bAdj + bAdjust;
             eAdj = eAdj + eAdjust;
             }
-            
            
             //Clear canvas then draw line and end blobs again
             var c = document.getElementById("myCanvas");
@@ -146,24 +149,33 @@ function closeFullscreen() {
 
             //Work out stay length and day width or set as 24hr if zoomed
             var adm = document.getElementById("admissiondate").value;
-            var dth = document.getElementById("deathdate").value;
+            var dth = document.getElementById("deathdate").value;  
             if(dth !== ""){
             adm = new Date(adm);
             dth = new Date(dth);
-            var staylength = (dth - adm);
             var admHour = adm.getHours();
             var admMin = adm.getMinutes();
             var admTime = (admMin * 60000) + (admHour * 3600000);
             if(zoomD === 0){
                 var endIng = dth.setDate(dth.getDate() + eAdj);
                 endIng = new Date(endIng);
+                dth = document.getElementById("deathdate").value;
+                dth = new Date(dth);
                 var beginIng = adm.setDate(adm.getDate() + bAdj);
                 beginIng = new Date(beginIng);
+                // Not sure why I have to do this; adm kept getting bAdj added to it
+                adm = document.getElementById("admissiondate").value;
+                adm = new Date(adm);
+                if(beginIng>endIng){
+                    endIng = endIng.setDate(endIng.getDate() + 1);
+                alert("no further");
+                }
             }
             else{
-                var beginIng = new Date(zoomD.value);
+                var beginIng = new Date(zoomD);
                 var endIng = new Date(beginIng);
                 endIng = endIng.setDate(endIng.getDate() + 1);
+                endIng = new Date(endIng);
             }
             var period = endIng - beginIng;
             var beginMin = beginIng.getMinutes();
@@ -173,11 +185,10 @@ function closeFullscreen() {
             var oneday = ((finish - start) / days);
             //draw event lines, blobs and text
             var table = document.getElementById("myTable");
-            index = table.rows.length;
-            var tickCount = 0;
+            index = (table.rows.length);
             //tick and unctickCount is to enable sequential distance from top or bottom for each event
             var tickCount = 1;
-            var untickCount = 1
+            var untickCount = 1;
             for (var counter = 1; counter < index; counter++) {
                 //Check if event is highlighted as a concern and set below line
                 var poorChk = table.rows[counter].cells[3].firstChild.checked;
@@ -193,7 +204,6 @@ function closeFullscreen() {
                     untickCount = untickCount + 1;
                 }
                 //Workout event distance on line 
-               
                 var thisrow = table.rows[counter];
                 var eventdate = thisrow.cells[0].firstChild.value;
                 var eventdate = new Date(eventdate);
@@ -202,23 +212,19 @@ function closeFullscreen() {
                 duration = ((eventEnd - eventdate)/period) * (finish - start);
                 var eventpoint = eventdate - beginIng;
                 var dist = ((eventpoint / period) * (finish - start)) + start;
-                
-                //Draw the marker lines, blob and name, check if within line first
-                if(dist >= start && dist < finish) {
-                //Draw marker line, below line if flagged
+                //Draw the event lines, blob and name, check if within line first
+                if(dist <= finish) {
+                    if(dist > start){
+                //Draw event line, below line if flagged
                 ctxy.strokeStyle = wcol;
                 ctxy.beginPath();
                 ctxy.moveTo(dist, lineheight);
                 ctxy.lineTo(dist, typeheight);
                 ctxy.stroke();
-                // and blob
-                ctxy.beginPath();
-                ctxy.arc(dist, lineheight, 5, 0, 2 * Math.PI);
-                ctxy.fillStyle = wcol;
-                ctxy.fill();
+                
                 //rectangle, cut it short if needed and omit second blob
-                if(dist + duration < finish){
-                roundRect(ctxy, dist+2, lineheight, duration-2, typeheight-lineheight, 0, true, "#B0E0E6", false);
+                if((dist + duration) < finish){
+                roundRect(ctxy, dist+1, lineheight, duration-2, typeheight-lineheight, 0, true, "#B0E0E6", false);
                 ctxy.beginPath();
                 ctxy.arc(dist+duration, lineheight, 5, 0, 2 * Math.PI);
                 ctxy.fillStyle = wcol;
@@ -229,11 +235,17 @@ function closeFullscreen() {
                 ctxy.stroke();
                 }
                 else{
-                roundRect(ctxy, dist+2, lineheight, finish-dist-2, typeheight-lineheight, 0, true, "#B0E0E6", false);
+                roundRect(ctxy, dist+1, lineheight, finish-dist-2, typeheight-lineheight, 0, true, "#B0E0E6", false);
                 }
+                //add blob now so it overlies duration rectangle
+                ctxy.beginPath();
+                ctxy.arc(dist, lineheight, 5, 0, 2 * Math.PI);
+                ctxy.fillStyle = wcol;
+                ctxy.fill();
                 //add event type text at top/bottom of line
                 var eventname = thisrow.cells[2].firstChild;
                 var eventname = eventname.firstChild.value;
+                eventname = eventname.toUpperCase();
                 var eventDetail = thisrow.cells[4].firstChild;
                 var eventDetail = eventDetail.value;
                 if(eventDetail != ""){
@@ -244,6 +256,7 @@ function closeFullscreen() {
                 ctxy.fillStyle = wcol;
                 ctxy.font = eventFont + "px Georgia";
                 ctxy.fillText(eventname, dist, wordHeight);
+            }
                 }
                 else {
                     break;
@@ -305,11 +318,13 @@ function closeFullscreen() {
                     ctxy.stroke();
                     xco = xco + (oneday / 24);
                 }
-                //day markers
+                //day markers and numbers
             var x = 0;
-            var point = 1;
-            while ((point + oneday) < finish) {
+            var point = 500;//just to be more than 'start' to start with
+            var startDay = Math.floor((beginIng - adm) / 86400000);
+            while (point < finish) {
                 point = (start + tRemain + (oneday * x));
+                if(point < finish){
                 ctxy.strokeStyle = "#000000";
                 ctxy.beginPath();
                 ctxy.moveTo(point, lineheight);
@@ -318,39 +333,46 @@ function closeFullscreen() {
                 ctxy.textAlign = "start";
                 ctxy.fillStyle = "#000000";
                 ctxy.font = "10px Georgia";
-                ctxy.fillText(x + bAdj, point - (oneday / 2), lineheight + 20);
+                if(point - (oneday / 2) >start){
+                ctxy.fillText(x + startDay, point - (oneday / 2), lineheight + 20)
+                }
+                };
                 x++;
             }
-            // Admission and death lines
-            if(bAdj <= 0){
-                var admDist = start - (bAdj * oneday);
+            // Admission and death lines; admission first
+            var admPoint = adm - beginIng;
+            var admDist = ((admPoint / period) * (finish - start)) + start;
+                if(admDist >= start){
                 ctxy.strokeStyle = "#A9A9A9";
                 ctxy.beginPath();
                 ctxy.moveTo(admDist, 20);
-                ctxy.lineTo(admDist, (canvasH-20));
+                ctxy.lineTo(admDist, (tlHeight-20));
                 ctxy.stroke();
                 ctxy.textAlign = "start";
                 ctxy.fillStyle = "#A9A9A9";
                 ctxy.font = "10px Georgia";
-                ctxy.fillText("Adm", admDist, 15);
-            }
-            if(eAdj >= 0){
-                var dthDist = finish - (eAdj * oneday);
+                ctxy.fillText("Admission", admDist, 15)
+                };
+            // death line
+                var dthPoint = dth - beginIng;
+                var dthDist = ((dthPoint / period) * (finish - start)) + start;
+                if(dthDist <= finish){
                 ctxy.strokeStyle = "#A9A9A9";
                 ctxy.beginPath();
                 ctxy.moveTo(dthDist, 20);
-                ctxy.lineTo(dthDist, (canvasH-20));
+                ctxy.lineTo(dthDist, (tlHeight-20));
                 ctxy.stroke();
                 ctxy.textAlign = "start";
                 ctxy.fillStyle = "#A9A9A9";
                 ctxy.font = "10px Georgia";
-                ctxy.fillText("Death", dthDist, 15);
-            }
+                ctxy.fillText("Death", dthDist, 15)
+                };
+            
             // update age and initials
             var age = document.getElementById("age").value;
-            age = age.concat(" yr");
+            ageV = age.concat(" yr");
             var sex = document.getElementById("sex").value;
-            sex = sex.concat("/");
+            var sexV = sex.concat("/");
             var initials = document.getElementById("initials").value;
             var PC = document.getElementById("PC").value;
             var PMH1 = document.getElementById("PMH1").value;
@@ -364,8 +386,8 @@ function closeFullscreen() {
             ctxy.font = "18px Georgia";
             ctxy.fillStyle = "#000000";
             ctxy.fillText(initials, 20, 30);
-            ctxy.fillText(sex, 20, 50)
-            ctxy.fillText(age, 50, 50);
+            ctxy.fillText(sexV, 20, 50)
+            ctxy.fillText(ageV, 50, 50);
             ctxy.font = "12px Georgia";
             ctxy.fillText(PC, 20, 80);
             ctxy.fillText(PMH1, 20, 130);
@@ -400,7 +422,8 @@ function closeFullscreen() {
         list = list.concat("</datalist>");
         function insertRow() {
             var table = document.getElementById("myTable");
-            var row = table.insertRow(table.rows.length);
+            var index = table.rows.length;
+            var row = table.insertRow(index);
             // cell 1 event date in position 0
             var cell1 = row.insertCell(0);
             var t1 = document.createElement("input");
@@ -451,8 +474,11 @@ function closeFullscreen() {
             t6.id = "btnZoom" + index;
             t6.className = "btn";
             t6.innerHTML = "<i class='fa fa-search-plus'></i>";
-            var edate = document.getElementById("edate" + index);
-            t6.onclick = function () { updateLine(0,0,edate) };
+            t6.onclick = function () { 
+                var rowToZoom = row.rowIndex;
+                var zoomDate = document.getElementById("edate" + rowToZoom).value;
+                updateLine(0,0,zoomDate);
+                };
             cell6.appendChild(t6);
             //Remove button
             cell7 = row.insertCell(6);
@@ -468,7 +494,6 @@ function closeFullscreen() {
             // populate detail list
             target_cell = cell3.firstChild;
             target_cell.innerHTML = list;
-            index++;
         }
         function checkTable(){
             // check if zooming event was included in the function call    
@@ -529,61 +554,70 @@ function closeFullscreen() {
             dtht = dth.toLocaleTimeString();
             var data = new Array(rowCount + 3);
             var thisRow = table.rows;
-            for (i = 0; i < rowCount + 3; i++) {
+            for (i = 0; i < rowCount + 12; i++) {
                 data[i] = new Array(5);
             }
             //add column headings and admission line
             var age = document.getElementById("age").value;
-            age = age.concat(" yr");
             var sex = document.getElementById("sex").value;
-            sex = sex.concat("/");
             var initials = document.getElementById("initials").value;
             var PC = document.getElementById("PC").value;
-            data[0][0] = initials;
-            data[0][1] = sex;
-            data[0][2] = age;
-            data[1][0] = "Event Date";
-            data[1][1] = "Start Time";
-            data[1][2] = "End Date"
-            data[1][3] = "End Time"
-            data[1][4] = "Type";
-            data[1][5] = "Concern?";
-            data[1][6] = "Detail";
-            data[2][0] = admd;
-            data[2][1] = admt;
-            data[2][2] = admd;
-            data[2][3] = admt;
-            data[2][4] = "Hosp Admission";
-            data[2][5] = "";
-            data[2][6] = "";
+            var PMH1 = document.getElementById("PMH1").value;
+            var PMH2 = document.getElementById("PMH2").value;
+            var PMH3 = document.getElementById("PMH3").value;
+            var PMH4 = document.getElementById("PMH4").value;
+            var PMH5 = document.getElementById("PMH5").value;
+            data[0][0] = "Initials";
+            data[0][1] = initials;
+            data[1][0] = "Sex";
+            data[1][1] = sex;
+            data[2][0] = "Age";
+            data[2][1] = age;
+            data[3][0] = "PC";
+            data[3][1] = PC;
+            data[4][0] = "PMH1";
+            data[4][1] = PMH1;
+            data[5][0] = "PMH2";
+            data[5][1] = PMH2;
+            data[6][0] = "PMH3";
+            data[6][1] = PMH3;
+            data[7][0] = "PMH4";
+            data[7][1] = PMH4;
+            data[8][0] = "PMH5";
+            data[8][1] = PMH5;
+            data[9][0] = "Admission";
+            data[9][1] = admd;
+            data[9][2] = admt;
+            data[10][0] = "Death";
+            data[10][1] = dthd;
+            data[10][2] = dtht;
+            data[11][0] = "Event Date";
+            data[11][1] = "Start Time";
+            data[11][2] = "End Date";
+            data[11][3] = "End Time";
+            data[11][4] = "Type";
+            data[11][5] = "Concern?";
+            data[11][6] = "Detail";
             //add the table values
             for (c = 1; c < (rowCount); c++) {
                 var eventDate = thisRow[c].cells[0].firstChild.value;
                 eventDate = new Date(eventDate);
                 var eventEnd = thisRow[c].cells[1].firstChild.value;
                 eventEnd = new Date(eventEnd);
-                data[c + 2][0] = eventDate.toDateString();
-                data[c + 2][1] = eventDate.toLocaleTimeString();
-                data[c + 2][2] = eventEnd.toDateString();
-                data[c + 2][3] = eventEnd.toLocaleTimeString();
-                data[c + 2][4] = thisRow[c].cells[2].firstChild.firstChild.value;
-                data[c + 2][6] = thisRow[c].cells[4].firstChild.value;
+
+                data[c + 11][0] = eventDate.toDateString();
+                data[c + 11][1] = eventDate.toLocaleTimeString();
+                data[c + 11][2] = eventEnd.toDateString();
+                data[c + 11][3] = eventEnd.toLocaleTimeString();
+                data[c + 11][4] = thisRow[c].cells[2].firstChild.firstChild.value;
+                data[c + 11][6] = thisRow[c].cells[4].firstChild.value;
                 if(thisRow[c].cells[3].firstChild.checked){
-                    data[c + 2][5] = "Yes";
+                    data[c + 11][5] = "Yes";
                 }
                 else{
-                    data[c + 2][5] = "No";
+                    data[c + 11][5] = "No";
                 }
             }
-            //add death row
-            data[rowCount + 2][0] = dthd;
-            data[rowCount + 2][1] = dtht;
-            data[rowCount + 2][2] = dthd;
-            data[rowCount + 2][3] = dtht;
-            data[rowCount + 2][4] = "Death";
-            data[rowCount + 2][5] = "";
-            data[rowCount + 2][6] = "";
-
             //parse with commas
             let csvContent = "data:text/csv;charset=utf-8,";
             data.forEach(function (rowArray) {
@@ -594,7 +628,8 @@ function closeFullscreen() {
             var encodedUri = encodeURI(csvContent);
             var link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "Events.csv");
+            var fileName = initials + " Events.csv";
+            link.setAttribute("download", fileName);
             document.body.appendChild(link); // ??Required for FF
             link.click(); // to download the file
         }  
@@ -614,39 +649,59 @@ function closeFullscreen() {
                     var table = document.getElementById("myTable");
                     // target is the uploaded file
                     var rows = e.target.result.split("\n");
+                    var cells = rows[0].split(",");
+                    document.getElementById("initials").value = cells[1];
+                    var cells = rows[1].split(",");
+                    document.getElementById("sex").value = cells[1];
                     var cells = rows[2].split(",");
-                    document.getElementById("admissiondate").value = dateComb(cells[0],cells[1]);
+                    document.getElementById("age").value = cells[1];
+                    var cells = rows[3].split(",");
+                    document.getElementById("PC").value = cells[1];
+                    var cells = rows[4].split(",");
+                    document.getElementById("PMH1").value = cells[1];
+                    var cells = rows[5].split(",");
+                    document.getElementById("PMH2").value = cells[1];
+                    var cells = rows[6].split(",");
+                    document.getElementById("PMH3").value = cells[1];
+                    var cells = rows[7].split(",");
+                    document.getElementById("PMH4").value = cells[1];
+                    var cells = rows[8].split(",");
+                    document.getElementById("PMH5").value = cells[1];
+                    var cells = rows[9].split(",");
+                    document.getElementById("admissiondate").value = dateComb(cells[1],cells[2]);
                     var last = (rows.length)-2;
-                    var cells = rows[last].split(",");
-                    document.getElementById("deathdate").value = dateComb(cells[0],cells[1]);
+                    var cells = rows[10].split(",");
+                    document.getElementById("deathdate").value = dateComb(cells[1],cells[2]);
                     //Remove first row prior to importing rows
-                    index = index-1;
-                    document.getElementById("myTable").deleteRow(1);
+                    var tableLength = document.getElementById("myTable").rows.length;
+                    for(u = 1; u < tableLength; u++){
+                        document.getElementById("myTable").deleteRow(u);
+                    }
                     updateLine(0,0,0);
-                    for(var i = 2; i < (rows.length); i++){
+                    for(var i = 14; i < (rows.length); i++){
                         var cells = rows[i].split(",");
                         if(cells.length > 1) {
                             insertRow();
                             var table = document.getElementById("myTable");
-                            var thisRow = table.rows[i-2];
+                            var thisRow = table.rows[i-13];
                             //join the start date and time together then parse for adding to input field
                             var startDateTime = dateComb(cells[0],cells[1]);
-                            document.getElementById("edate"+(i-1)).value = startDateTime;
-                            // same for end date/time
+                            var SDT = document.getElementById("edate"+(i-13));
+                            SDT.value = startDateTime;
+                            // same for end date/time 
                             var endDateTime = dateComb(cells[2],cells[3]);
-                            document.getElementById("edateEnd"+(i-1)).value = endDateTime;
+                            document.getElementById("edateEnd"+(i-13)).value = endDateTime;
                             // now type field
-                            document.getElementById("etype"+(i-1)).firstChild.value = cells[4];
-                            document.getElementById("edetail"+(i-1)).value = cells[6];
+                            document.getElementById("etype"+(i-13)).firstChild.value = cells[4];
+                            document.getElementById("edetail"+(i-13)).value = cells[6];
                             if(cells[5] == "Yes"){
-                            document.getElementById("poorChk"+(i-1)).checked = true;
+                            document.getElementById("poorChk"+(i-13)).checked = true;
                             } else{
-                            document.getElementById("poorChk"+(i-1)).checked = false;
+                            document.getElementById("poorChk"+(i-13)).checked = false;
                             }
                             }
+                            updateLine(0,0,0);
                         }
-                        index = rows.length;
-                        updateLine(0,0,0);
                     }
                 reader.readAsText(fileUpload.files[0]);
     }
@@ -724,7 +779,7 @@ function closeFullscreen() {
         <input type="text" id="PMH5" size="25" maxlength="18" onchange="updateLine(0,0,0)">
     </div>
     <hr>
-    <div class="container">
+    <!--<div class="container">-->
         <table id="myTable" class="dataTable">
             <th>Date & Time</th>
             <th>End</th>
@@ -732,13 +787,15 @@ function closeFullscreen() {
             <th >Flag? </th>
             <th> Detail</th>
         </table>
-    </div>
+    <!--</div>-->
     <br>
+    <div class="buttonGrp">
     <button id="btnAdd" class="btn" onclick="insertRow()"><i class="fa fa-plus"></i> Event</button>
     <button id="btnFull" class="btn" onclick="updateLine(0,0,0)"><i class="fa fa-home"></i> Refresh</button>
     <button id="btnExportLine" class="btn" onclick="takePicture()"><i class="fa fa-save"></i> Line</button>
     <button id="btnExportTbl" class="btn" onclick="exportTable()"><i class="fa fa-save"></i> Events</button>
-    <input type="file" id="fileUpload" />
-    <input type="button" id="upload" value="Upload" onclick="Upload()" />
+    <input type="button" id="upload" value="Upload" onclick="Upload()" style="float: right"/>
+    <input type="file" id="fileUpload" style="float: right"/>
+    </div>
 </body>
 </html>
